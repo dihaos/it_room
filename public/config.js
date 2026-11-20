@@ -1,7 +1,7 @@
 // Публичные данные сайта. Оставьте неизвестные значения пустыми.
 export const siteConfig = {
   startMonth: "",
-  city: "",
+  city: "Грозный",
   address: "",
   schedule: "",
   teachers: {

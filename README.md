@@ -61,9 +61,9 @@ npm start
 
 ## Production на REG.RU
 
-Для обновления [itroomschool.ru](https://www.itroomschool.ru/) откройте pull request и влейте его в `main`. На REG.RU cron раз в минуту проверяет `main` публичного репозитория. Скрипт [deploy/regru/sync.sh](deploy/regru/sync.sh) собирает новую версию из `public/` и PHP-обработчика. Последний опубликованный коммит и журнал лежат в `~/.itroomschool-sync/revision` и `~/.itroomschool-sync/cron.log`.
+Для обновления [itroomschool.ru](https://www.itroomschool.ru/) откройте pull request и влейте его в `main`. После пуша GitHub запускает [Deploy to REG.RU](.github/workflows/regru.yml). Он вызывает публикацию по SSH, а скрипт [deploy/regru/sync.sh](deploy/regru/sync.sh) собирает сайт из `public/` и PHP-обработчика. Ход публикации виден на вкладке Actions. SHA опубликованного коммита хранится на сервере в `~/.itroomschool-sync/revision`.
 
-Скрипт синхронизации установлен вне каталога сайта в `~/.itroomschool-sync/sync.sh`. Если изменится сам скрипт, его установленную копию нужно обновить отдельно. Чтобы откатить сайт, отмените проблемный коммит в `main` через `git revert`.
+Скрипт синхронизации установлен вне каталога сайта в `~/.itroomschool-sync/sync.sh`. Если изменится сам скрипт, его установленную копию нужно обновить отдельно. В GitHub ключ хранится в секрете `REG_RU_DEPLOY_KEY`. На REG.RU этот ключ разрешает только запуск публикации из `main`. Чтобы откатить сайт, отмените проблемный коммит в `main` через `git revert`.
 
 Для приёма заявок скопируйте [deploy/regru/telegram.example.php](deploy/regru/telegram.example.php) на сервер в `~/www/.itroomschool-telegram.php` и укажите `bot_token` и `chat_id`. Файл лежит на уровень выше корня сайта `~/www/itroomschool.ru/`. Храните его с правами `600`. После настройки отправьте пробную заявку с сайта и проверьте, что сообщение пришло в нужный чат.
 

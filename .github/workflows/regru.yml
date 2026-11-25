@@ -1,0 +1,46 @@
+name: Deploy to REG.RU
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: regru-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Publish the GitHub revision
+        env:
+          REG_RU_DEPLOY_KEY: ${{ secrets.REG_RU_DEPLOY_KEY }}
+        shell: bash
+        run: |
+          if [[ -z "$REG_RU_DEPLOY_KEY" ]]; then
+            echo "::error::Configure the REG_RU_DEPLOY_KEY repository secret."
+            exit 1
+          fi
+
+          umask 077
+          ssh_dir=$(mktemp -d "$RUNNER_TEMP/regru-ssh.XXXXXX")
+          trap 'rm -rf -- "$ssh_dir"' EXIT
+          printf '%s\n' "$REG_RU_DEPLOY_KEY" > "$ssh_dir/deploy_key"
+          unset REG_RU_DEPLOY_KEY
+          cat > "$ssh_dir/known_hosts" <<'EOF'
+          server141.hosting.reg.ru ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINDzXQmegyKBNanTPZ0zOZhvQ+JXgxXAp8d2ba21GdMK
+          EOF
+
+          ssh -T -i "$ssh_dir/deploy_key" \
+            -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 \
+            -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+            u3473089@server141.hosting.reg.ru "deploy $GITHUB_SHA"
+
+      - name: Check the published site
+        run: curl --fail --silent --show-error --max-time 15 --output /dev/null https://www.itroomschool.ru/

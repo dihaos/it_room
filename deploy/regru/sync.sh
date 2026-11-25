@@ -8,6 +8,15 @@ web_root="$HOME/www/itroomschool.ru"
 source_url="https://github.com/dihaos/it_room.git"
 source_ref="refs/heads/main"
 
+expected_revision=
+if (( $# )); then
+    if [[ $# != 1 || $1 != --github || ! ${SSH_ORIGINAL_COMMAND:-} =~ ^deploy\ ([0-9a-f]{40})$ ]]; then
+        printf 'Expected a GitHub deployment command.\n' >&2
+        exit 1
+    fi
+    expected_revision=${BASH_REMATCH[1]}
+fi
+
 if [[ ! -f "$web_root/index.html" ]]; then
     printf 'Site index is missing from %s\n' "$web_root" >&2
     exit 1
@@ -15,7 +24,11 @@ fi
 
 mkdir -p "$state"
 exec 9>"$state/deploy.lock"
-flock -n 9 || exit 0
+if [[ -n "$expected_revision" ]]; then
+    flock -w 45 9
+else
+    flock -n 9 || exit 0
+fi
 
 repo="$state/source.git"
 if [[ ! -f "$repo/HEAD" ]]; then
@@ -23,7 +36,14 @@ if [[ ! -f "$repo/HEAD" ]]; then
 fi
 git -C "$repo" fetch --quiet --depth=1 "$source_url" "$source_ref"
 revision=$(git -C "$repo" rev-parse FETCH_HEAD)
+if [[ -n "$expected_revision" && "$expected_revision" != "$revision" ]]; then
+    printf 'Skipped %s because main now points to %s.\n' "$expected_revision" "$revision"
+    exit 0
+fi
 if [[ -f "$state/revision" && $(<"$state/revision") == "$revision" ]]; then
+    if [[ -n "$expected_revision" ]]; then
+        printf 'Already published %s.\n' "$revision"
+    fi
     exit 0
 fi
 
